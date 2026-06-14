@@ -36,8 +36,8 @@ vamos a almacenar la metadata sobre los assets y sus validity windows en una DB.
 ```
 /scar
   |-- /app
-  |   |-- /api  ---> un API REST con FastAPI, endpoint para admin y lookups
-  |   |-- /logic ---> temporal versioning, supersede rules, etc.
+  |   |-- /routes  ---> endpoints de la API REST
+  |   |-- /logic ---> typing, temporal versioning, supersede rules, etc.
   |   |-- /storage  ---> interface para AssetMetadata y BlobStorage
   |-- /tests
   |-- docker-compose.yml
@@ -45,6 +45,8 @@ vamos a almacenar la metadata sobre los assets y sus validity windows en una DB.
       |-- /workflows
           |-- ci.yml
 ```
+
+Para manejar la logica del supersede, se puede definir que un asset es valido en una ventana de tiempo, con un `valid_from` y un `valid_to`, donde `valid_to` puede ser indefinido para indicar que es el asset "activo actualmente". cuando se quiera insertar un nuevo asset, podemos validar entre esas ventanas de tiempo para ver si hay overlaps, si los hay, ver como se puede splittear/truncar los assets anteriores para acomodar el nuevo asset, y en base a eso ver que operaciones se llevarian a cabo para aplicar los cambios en la DB (estos van metidos en una transaction para mantener atomicidad).
 
 ### temporal versioning
 
@@ -65,6 +67,8 @@ Entonces, tenemos que actualizar el asset A para que tenga un `valid_to` que sea
 
   > ok pero, si permitis esto, y si asi ya se habia usado antes un lookup donde daba A pero ahora daria B, ya no hay consistencia???
 
+  > podemos agregar un `lineage_version_id` para poder decur que A' realmente es un dup de A; y pedir un flag para permitir este tipo de cambios, sino DENEGAR
+
 - CASO 2: tenemos asset A v_f=X, v_t=undefined; llega asset B con v_f=W, v_t=undefined; B hubiera sido un asset "activo actualmente", excepto que su valid_from es de antes de asset A; que hacemos?
   - opcion 1: INSERT asset B con v_f=W, v_t=X-1; mantener asset A igual
   - opcion 2: DENEGAR
@@ -84,4 +88,4 @@ Entonces, tenemos que actualizar el asset A para que tenga un `valid_to` que sea
   - opcion 2: DENEGAR
   > esto deberia ser un UPDATE? un REPLACE? es raro, puedo mantener si no aplicar un `retired_at` a A y un `created_at` a B, y decir que de ahora en mas B es el activo actualmente...
 
-  > TODO: revisar, pero por ahora podemos DENEGAR
+  > repensando, podemos permitir ***si*** nos viene un flag para permitir el cambio, sino DENEGAR
