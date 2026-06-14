@@ -1,5 +1,7 @@
 # Satellite Calibration Asset Registry
 
+> ### [tldraw board](https://www.tldraw.com/f/OxanQLjTHBoZodbA-pT9G?d=v325.-290.2496.1771.page)
+
 ## Entendiendo el problema
 
 ### requerimientos funcionales
