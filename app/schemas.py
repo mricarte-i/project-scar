@@ -26,3 +26,9 @@ class VersionOut(BaseModel):
     valid_to: datetime | None
     sha256: str
     payload: BlobPayload
+
+
+class BulkOut(BaseModel):
+    satellite_id: str
+    at: datetime
+    assets: dict[AssetType, VersionOut | None]
