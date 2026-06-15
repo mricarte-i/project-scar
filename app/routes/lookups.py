@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_asset_repository, get_blob_store
-from app.logic.assets import AssetType
+from app.domain.assets import AssetType
+from app.domain.errors import NoAssetValidError
 from app.schemas import BlobPayload, BulkOut, VersionOut
 from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository, ResolvedVersion
@@ -39,16 +40,12 @@ def point_in_time(
     at = at or datetime.now(timezone.utc)
     resolved_version = repo.resolve_at(satellite_id, asset_type, at)
     if resolved_version is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "no_asset_valid_at_time",
-                "message": f"No version of {asset_type} for satellite {satellite_id} is valid at {at.isoformat()}",
-                "details": {
-                    "satellite_id": satellite_id,
-                    "asset_type": asset_type,
-                    "at": at.isoformat(),
-                },
+        raise NoAssetValidError(
+            f"No version of {asset_type} for satellite {satellite_id} is valid at {at.isoformat()}",
+            details={
+                "satellite_id": satellite_id,
+                "asset_type": asset_type.value,
+                "at": at.isoformat(),
             },
         )
     return _to_version_out(resolved_version, blobs)
@@ -66,6 +63,7 @@ def bulk(
 ):
     at = at or datetime.now(timezone.utc)
     resolved_assets = repo.resolve_all_at(satellite_id, at)
+    # TODO: if no assets are valid, should we 404 instead of returning a bulk with all nulls
     assets: dict[AssetType, VersionOut | None] = {}
     for t, rv in resolved_assets.items():
         if rv is not None:

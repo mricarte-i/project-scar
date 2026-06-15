@@ -1,7 +1,7 @@
 from dataclass import dataclass, field
 from typing import Any
 
-from app.logic.window import Window
+from app.domain.window import Window
 
 
 @dataclass(frozen=True)

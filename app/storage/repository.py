@@ -8,9 +8,9 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 
-from app.logic.assets import AssetType
-from app.logic.versioning import ExistingVersion, SupersedePlan
-from app.logic.window import Window
+from app.domain.assets import AssetType
+from app.domain.versioning import ExistingVersion, SupersedePlan
+from app.domain.window import Window
 from app.storage.models import AssetVersion
 
 

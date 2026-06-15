@@ -1,10 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from app.domain.errors import InvalidWindowError
+
 
 def _ensure_utc(ts: datetime, label: str) -> datetime:
     if ts.tzinfo is None:
-        raise ValueError(f"{label} must include timezone offset (no naive datetimes)")
+        raise InvalidWindowError(
+            f"{label} must include timezone offset (no naive datetimes)"
+        )
     return ts.astimezone(timezone.utc)
 
 
@@ -20,7 +24,9 @@ class Window:
             end = _ensure_utc(self.end, "end")
             object.__setattr__(self, "end", end)
             if not start < end:
-                raise ValueError(f"empty window: start {start} is not before end {end}")
+                raise InvalidWindowError(
+                    f"empty window: start {start} is not before end {end}"
+                )
 
     @property
     def is_open_ended(self) -> bool:

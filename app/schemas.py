@@ -2,7 +2,7 @@ from pydantic import BaseModel, field_validator
 from typing import Any, Literal
 from datetime import datetime
 
-from app.logic.assets import AssetType
+from app.domain.assets import AssetType
 
 
 def _require_aware(ts: datetime) -> datetime:
