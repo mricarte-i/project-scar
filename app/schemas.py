@@ -54,3 +54,13 @@ class SupersededOut(BaseModel):
 class UploadOut(BaseModel):
     created: dict[str, Any]
     superseded: list[SupersededOut] = []
+
+
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+    details: dict[str, Any] = {}
+
+
+class ErrorOut(BaseModel):
+    error: ErrorBody

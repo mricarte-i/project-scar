@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Iterator
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import create_engine
@@ -8,14 +9,17 @@ from app.storage.blobstore import BlobStore, S3BlobStore
 from app.storage.repository import AssetRepository, SqlAssetRepository
 
 
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
 
 
+@lru_cache
 def _engine():
     return create_engine(get_settings().database_url, pool_pre_ping=True, future=True)
 
 
+@lru_cache
 def _session_factory() -> sessionmaker:
     return sessionmaker(bind=_engine(), expire_on_commit=False, future=True)
 
@@ -32,6 +36,7 @@ def get_asset_repository(session: Session = Depends(get_session)) -> AssetReposi
     return SqlAssetRepository(session)
 
 
+@lru_cache
 def get_blob_store(settings: Settings = Depends(get_settings)) -> BlobStore:
     return S3BlobStore(settings.blob_store_url)
 
