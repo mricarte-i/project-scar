@@ -1,5 +1,5 @@
 from app.domain.errors import HistoricalEditError
-from dataclass import dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.domain.window import Window

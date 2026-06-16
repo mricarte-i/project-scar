@@ -39,7 +39,7 @@ vamos a almacenar la metadata sobre los assets y sus validity windows en una DB.
 /scar
   |-- /app
   |   |-- /routes  ---> endpoints de la API REST
-  |   |-- /logic ---> typing, temporal versioning, supersede rules, etc.
+  |   |-- /domain ---> typing, temporal versioning, supersede rules, etc.
   |   |-- /storage  ---> interface para AssetMetadata y BlobStorage
   |-- /tests
   |-- docker-compose.yml
