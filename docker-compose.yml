@@ -1,0 +1,72 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: scar
+      POSTGRES_PASSWORD: scar
+      POSTGRES_DB: scar
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # runs once on a fresh volume to init the database schema 
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # `-h 127.0.0.1` forces a TCP connection
+      # the temporary server used while init.sql runs listens on the socket,
+      # so this stays "unhealthy" until the schema is ready and the server is fully up 
+      test: ["CMD-SHELL", "pg_isready -U scar -d scar -h 127.0.0.1"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+  
+  minio-init:
+    image: minio/mc
+    depends_on:
+      - minio
+    # wait for minio, then create the bucket
+    entrypoint: >
+      /bin/sh -c "
+      until (mc alias set local http://minio:9000 minioadmin minioadmin); do
+        echo 'Waiting for MinIO...';
+        sleep 1;
+      done;
+      mc mb --ignore-existing local/scar-assets;
+      echo 'bucket ready';
+      "
+  
+  app:
+    build: 
+      context: .
+      dockerfile: app/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SCAR_DATABASE_URL: postgresql+psycopg://scar:scar@db:5432/scar
+      SCAR_S3_BUCKET: scar-assets
+      SCAR_S3_ACCESS_KEY: minioadmin
+      SCAR_S3_SECRET_KEY: minioadmin
+      SCAR_S3_INTERNAL_ENDPOINT: http://minio:9000
+      SCAR_S3_PUBLIC_ENDPOINT: http://localhost:9000
+      SCAR_S3_REGION: us-east-1
+      SCAR_PRESIGN_TTL_SECONDS: "3600"
+      SCAR_ADMIN_API_KEYS: dev-key:dev-operator
+    depends_on:
+      db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  miniodata:
