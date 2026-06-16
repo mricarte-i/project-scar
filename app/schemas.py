@@ -32,3 +32,25 @@ class BulkOut(BaseModel):
     satellite_id: str
     at: datetime
     assets: dict[AssetType, VersionOut | None]
+
+
+class JsonUploadIn(BaseModel):
+    valid_from: datetime
+    valid_to: datetime | None = None
+    payload: dict[str, Any]
+    _v_from = field_validator("valid_from")(_require_aware)
+
+    @field_validator("valid_to")
+    @classmethod
+    def _v_to(cls, v: datetime | None) -> datetime | None:
+        return _require_aware(v) if v is not None else None
+
+
+class SupersededOut(BaseModel):
+    version_id: int
+    new_valid_to: datetime | None
+
+
+class UploadOut(BaseModel):
+    created: dict[str, Any]
+    superseded: list[SupersededOut] = []

@@ -1,3 +1,4 @@
+from app.domain.errors import HistoricalEditError
 from dataclass import dataclass, field
 from typing import Any
 
@@ -101,8 +102,8 @@ def plan_supersede(
             for ins in plan.inserts
             if ins.lineage_version_id is not None
         ]
-        raise Exception(
-            f"Supersede plan requires override of existing versions, but allow_historical_overwrite is False",
+        raise HistoricalEditError(
+            f"Supersede plan requires override of existing versions, but allow_historical_overwrite is {allow_historical_overwrite}",
             affected_version_ids=affected,
         )
 

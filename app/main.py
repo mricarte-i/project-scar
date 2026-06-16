@@ -4,12 +4,13 @@ from sqlalchemy import text
 
 from app.deps import get_session
 from app.domain.errors import DomainError
-from app.routes import lookups
+from app.routes import lookups, admin
 
 
 def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(lookups.router)
+    app.include_router(admin.router)
 
     @app.exception_handler(DomainError)
     async def _domain_error_handler(request, exc: DomainError):
