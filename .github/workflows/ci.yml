@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - run: pip install -r app/requirements.txt ruff mypy
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy app
+  
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: scar
+          POSTGRES_PASSWORD: scar
+          POSTGRES_DB: scar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U scar"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SCAR_DATABASE_URL: postgresql+psycopg://scar:scar@localhost:5432/scar
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Testing the app with the test database..."
+      # TODO: tests
+  
+  build:
+    needs: [lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -f app/Dockerfile -t scar:${{ github.sha }} .
+      - name: Test the full stack with docker-compose
+        run: |
+          docker compose up -d
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:8000/healthz;
+            then
+              echo;
+              echo "App is healthy!";
+              exit 0;
+            fi
+            sleep 2;
+          done
+          echo "App did not become healthy in time";
+          docker compose logs;
+          exit 1;
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+  
+  deploy:
+    if: github.ref == 'refs/heads/master'
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Deploying to production..."
+      # TODO: push the Docker image to a registry and deploy to the production environment
