@@ -61,6 +61,16 @@ class UploadOut(BaseModel):
     superseded: list[SupersededOut] = []
 
 
+class RetireIn(BaseModel):
+    effective_from: datetime
+
+    _v_to = field_validator("effective_from")(_require_aware)
+
+
+class RetireOut(BaseModel):
+    retired: SupersededOut
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

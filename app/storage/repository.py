@@ -47,11 +47,13 @@ class AssetRepository(Protocol):
         *,
         satellite_id: str,
         asset_type: AssetType,
-        new_payload_uri: str,
-        media_type: str,
-        sha256: str,
         created_by: str,
-    ) -> int: ...
+        # only needed when the plan inserts a new version
+        # omitted for truncation-only plans like retire
+        new_payload_uri: str | None = None,
+        media_type: str | None = None,
+        sha256: str | None = None,
+    ) -> int | None: ...
 
 
 class SqlAssetRepository(AssetRepository):
@@ -110,11 +112,11 @@ class SqlAssetRepository(AssetRepository):
         *,
         satellite_id,
         asset_type,
-        new_payload_uri,
-        media_type,
-        sha256,
         created_by,
-    ):
+        new_payload_uri=None,
+        media_type=None,
+        sha256=None,
+    ) -> int | None:
         new_id: int | None = None
         with self._s.begin():  # one TRANSACTION to rule them all
             for deletion in plan.deletions:

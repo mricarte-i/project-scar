@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
-from app.domain.errors import HistoricalEditError
+from app.domain.errors import HistoricalEditError, InvalidWindowError, NoAssetValidError
 from app.domain.window import Window
 
 
@@ -104,3 +105,31 @@ def plan_supersede(
         )
 
     return plan
+
+
+def plan_retire(effective: datetime, timeline: list[ExistingVersion]) -> SupersedePlan:
+    """
+    Take an asset out of service from `effective` date on, with no replacement.
+
+    It's a truncation of the version active at `effective` to end there.
+    Retirement of an already closed window is rejected.
+    """
+    target = next((v for v in timeline if v.window.contains(effective)), None)
+    if target is None:
+        raise NoAssetValidError(
+            f"No asset version is active at {effective.isoformat()}, cannot retire",
+            details={"effective_from": effective.isoformat()},
+        )
+
+    if not target.window.is_open_ended:
+        raise HistoricalEditError(
+            f"Retirement effective from {effective.isoformat()} would truncate an already closed window",
+            affected_version_ids=[target.id],
+        )
+
+    if effective <= target.window.start:
+        raise InvalidWindowError("effective_from must be after the active version's valid_from")
+
+    return SupersedePlan(
+        truncations=[Truncation(target.id, Window(target.window.start, effective))]
+    )

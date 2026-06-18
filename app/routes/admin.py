@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 
 from app.deps import get_asset_repository, get_blob_store, require_admin
 from app.domain.assets import AssetType, is_frame, media_type_for
-from app.domain.versioning import plan_supersede
+from app.domain.versioning import plan_retire, plan_supersede
 from app.domain.window import Window
-from app.schemas import JsonUploadIn, SupersededOut, UploadOut
+from app.schemas import JsonUploadIn, RetireIn, RetireOut, SupersededOut, UploadOut
 from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository
 
@@ -94,3 +94,28 @@ async def upload_version(
     # should always return a new_id; None would mean a truncation-only plan (continuation)
     assert new_id is not None
     return _upload_response(plan, new_id, asset_type, window)
+
+
+@router.post(
+    "/{satellite_id}/assets/{asset_type}/versions/retire",
+    response_model=RetireOut,
+)
+def retire_version(
+    satellite_id: str,
+    asset_type: AssetType,
+    body: RetireIn,
+    operator: str = Depends(require_admin),
+    repo: AssetRepository = Depends(get_asset_repository),
+):
+    # close the currently-open version at `effective`, by truncating it to end at `effective`
+    timeline = repo.timeline(satellite_id, asset_type)
+    plan = plan_retire(body.effective_from, timeline)
+    repo.apply_plan(
+        plan,
+        satellite_id=satellite_id,
+        asset_type=asset_type,
+        new_payload_uri=None,
+        created_by=operator,
+    )
+    t = plan.truncations[0]
+    return RetireOut(retired=SupersededOut(version_id=t.version_id, new_valid_to=t.new_window.end))
