@@ -1,6 +1,7 @@
-from pydantic import BaseModel, field_validator
-from typing import Any, Literal
 from datetime import datetime
+from typing import Any, Literal
+
+from pydantic import BaseModel, field_validator
 
 from app.domain.assets import AssetType
 
@@ -38,6 +39,8 @@ class JsonUploadIn(BaseModel):
     valid_from: datetime
     valid_to: datetime | None = None
     payload: dict[str, Any]
+    allow_historical_overwrite: bool = False
+
     _v_from = field_validator("valid_from")(_require_aware)
 
     @field_validator("valid_to")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.domain.errors import InvalidWindowError
 
@@ -11,7 +11,7 @@ def _ensure_utc(ts: datetime, label: str) -> datetime:
         raise InvalidWindowError(
             f"{label} must include timezone offset (no naive datetimes)"
         )
-    return ts.astimezone(timezone.utc)
+    return ts.astimezone(UTC)
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ class Window:
         remainders: list[Window] = []
         if self.start < other.start:
             remainders.append(Window(self.start, other.start))
-        if other.end is None or (self.end is not None and other.end < self.end):
+        if other.end is not None and (self.end is None or other.end < self.end):
             remainders.append(Window(other.end, self.end))
         return remainders
 

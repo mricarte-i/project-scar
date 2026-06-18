@@ -1,21 +1,23 @@
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import text
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.deps import get_session
 from app.domain.errors import DomainError
-from app.routes import lookups, admin
+from app.routes import admin, lookups
 from app.schemas import ErrorBody, ErrorOut
 
 
 def _error_response(
-    status_code: int, code: str, message: str, details: dict | None = None
+    status_code: int, code: str, message: str, details: dict
 ) -> JSONResponse:
     body = ErrorOut(error=ErrorBody(code=code, message=message, details=details))
-    return JSONResponse(status_code=status_code, content=body.dict())
+    return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"))
 
 
 def create_app() -> FastAPI:
@@ -32,6 +34,9 @@ def create_app() -> FastAPI:
     @app.exception_handler(StarletteHTTPException)
     async def _http_exception_handler(request, exc: StarletteHTTPException):
         detail = exc.detail
+        code: str
+        message: str
+        details: dict[str, Any]
         if isinstance(detail, dict):
             code = detail.get("code", "http_error")
             message = detail.get("message", "An HTTP error occurred")

@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, Query
 
 from app.deps import get_asset_repository, get_blob_store
@@ -15,7 +16,7 @@ def _to_version_out(rv: ResolvedVersion, blobs: BlobStore) -> VersionOut:
     return VersionOut(
         satellite_id=rv.satellite_id,
         asset_type=rv.asset_type,
-        version_id=rv.version_id,
+        version_id=rv.id,
         valid_from=rv.window.start,
         valid_to=rv.window.end,
         sha256=rv.sha256,
@@ -37,11 +38,11 @@ def point_in_time(
     repo: AssetRepository = Depends(get_asset_repository),
     blobs: BlobStore = Depends(get_blob_store),
 ):
-    at = at or datetime.now(timezone.utc)
+    at = at or datetime.now(UTC)
     resolved_version = repo.resolve_at(satellite_id, asset_type, at)
     if resolved_version is None:
         raise NoAssetValidError(
-            f"No version of {asset_type} for satellite {satellite_id} is valid at {at.isoformat()}",
+            f"No version of {asset_type.value} for satellite {satellite_id} is valid at {at.isoformat()}",
             details={
                 "satellite_id": satellite_id,
                 "asset_type": asset_type.value,
@@ -61,7 +62,7 @@ def bulk(
     repo: AssetRepository = Depends(get_asset_repository),
     blobs: BlobStore = Depends(get_blob_store),
 ):
-    at = at or datetime.now(timezone.utc)
+    at = at or datetime.now(UTC)
     resolved_assets = repo.resolve_all_at(satellite_id, at)
     # TODO: if no assets are valid, should we 404 instead of returning a bulk with all nulls
     assets: dict[AssetType, VersionOut | None] = {}

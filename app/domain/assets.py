@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AssetType(str, Enum):
+class AssetType(StrEnum):
     DARKFRAME = "darkframe"
     GRAYFRAME = "grayframe"
     VICARIOUS_CAL_GAINS = "vicarious_cal_gains"
@@ -12,7 +12,7 @@ def is_frame(asset_type: AssetType) -> bool:
     return asset_type in [AssetType.DARKFRAME, AssetType.GRAYFRAME]
 
 
-class MediaType(str, Enum):
+class MediaType(StrEnum):
     FRAME_MEDIA_TYPE = "application/x-npy"
     JSON_MEDIA_TYPE = "application/json"
 

@@ -2,6 +2,17 @@
 
 > ### [tldraw board](https://www.tldraw.com/f/OxanQLjTHBoZodbA-pT9G?d=v325.-290.2496.1771.page)
 
+## TODO:
+- [] instrucciones para correr localmente (docker-compose)
+- [] instrucciones para correr los tests
+- [] tests
+- [] CI/CD
+  - [x] linting
+  - [] testing
+  - [] build
+- [] ejemplos de request a la API como admin y a user
+- [] documentación de los endpoints con Swagger
+
 ## Entendiendo el problema
 
 ### requerimientos funcionales

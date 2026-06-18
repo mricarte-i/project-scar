@@ -2,11 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
 
-
 from psycopg.types.range import Range
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
-
 
 from app.domain.assets import AssetType
 from app.domain.versioning import ExistingVersion, SupersedePlan
@@ -26,10 +24,12 @@ class ResolvedVersion:
 
 
 def window_to_range(w: Window) -> Range:
-    return Range(w.valid_from, w.valid_to, bounds="[)")
+    return Range(w.start, w.end, bounds="[)")
 
 
 def range_to_window(r: Range) -> Window:
+    if r.lower is None:
+        raise ValueError("validity range has no lower bound")
     return Window(r.lower, r.upper)
 
 
@@ -42,7 +42,7 @@ class AssetRepository(Protocol):
     ) -> dict[AssetType, ResolvedVersion | None]: ...
     def timeline(
         self, satellite_id: str, asset_type: AssetType
-    ) -> list[ResolvedVersion]: ...
+    ) -> list[ExistingVersion]: ...
     def apply_plan(
         self,
         plan: SupersedePlan,
@@ -126,6 +126,10 @@ class SqlAssetRepository(AssetRepository):
 
             for trunc in plan.truncations:
                 obj = self._s.get(AssetVersion, trunc.version_id)
+                if obj is None:
+                    raise RuntimeError(
+                        f"plan truncates missing version {trunc.version_id}"
+                    )
                 obj.validity = window_to_range(trunc.new_window)
 
             for insert in plan.inserts:
@@ -135,18 +139,23 @@ class SqlAssetRepository(AssetRepository):
                         asset_type=asset_type.value,
                         validity=window_to_range(insert.window),
                         payload_uri=new_payload_uri,
-                        media_type=media_type,
+                        media_type=media_type.value,
                         sha256=sha256,
                         created_by=created_by,
                     )
                 else:
                     # lineage_version_id is set when this row is a continuation of an existing version
+                    src = self._s.get(AssetVersion, insert.lineage_version_id)
+                    if src is None:
+                        raise RuntimeError(
+                            f"plan splits missing version {insert.lineage_version_id}"
+                        )
                     row = AssetVersion(
                         satellite_id=satellite_id,
                         asset_type=asset_type.value,
                         validity=window_to_range(insert.window),
                         payload_uri=new_payload_uri,
-                        media_type=media_type,
+                        media_type=media_type.value,
                         sha256=sha256,
                         lineage_version_id=insert.lineage_version_id,
                         created_by=created_by,

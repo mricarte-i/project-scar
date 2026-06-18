@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from psycopg.types.range import Range
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -7,8 +8,8 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy.dialects.postgresql import ExcludeConstraint, TSTZRANGE
+from sqlalchemy.dialects.postgresql import TSTZRANGE, ExcludeConstraint
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
@@ -23,7 +24,7 @@ class AssetVersion(Base):
     asset_type: Mapped[str] = mapped_column(Text, nullable=False)
 
     # [valid_from, valid_to): upper bound NULL/infinity = open-endeded
-    validity: Mapped[object] = mapped_column(TSTZRANGE, nullable=False)
+    validity: Mapped[Range] = mapped_column(TSTZRANGE, nullable=False)
 
     # payloads live in object storage, row holds a URI reference to the payload
     # we store the sha256 of the payload for integrity verification and to avoid duplicates in the blob store

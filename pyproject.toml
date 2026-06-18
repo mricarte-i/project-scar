@@ -1,0 +1,43 @@
+[project]
+name = "scar"
+version = "1.0.0"
+description = "Satellite Calibration Asset Registry"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# select rules to enable
+# E - pycodestyle errors
+# F - pyflakes errors
+# I - isort errors
+# UP - pyupgrade errors
+# B - flake8-bugbear errors
+select=["E", "F", "I", "UP", "B"]
+# line length is owned by the formatter; don't let ruff complain about it
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Depends, Query, Form, File, and Header don't return values, instead they return **marker objects** that
+# FastAPI inspects at request time to know to build each parameter. The "evaluated once" behavior is what 
+# FastAPI wants. 
+# So `B008` is a false positive in these cases, the pattern it warns against is what FastAPI intends.
+extend-immutable-calls=[
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Form",
+    "fastapi.File",
+    "fastapi.Header",
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true # boto3/sqlalchemy stubs not installed in CI
+check_untyped_defs = true
+warn_unused_ignores = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

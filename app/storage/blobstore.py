@@ -1,4 +1,5 @@
 from typing import BinaryIO, Protocol
+
 import boto3
 from botocore.client import Config
 

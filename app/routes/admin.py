@@ -1,16 +1,17 @@
-from datetime import datetime
-from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, status
 import hashlib
 import io
 import json
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.deps import get_asset_repository, get_blob_store, require_admin
 from app.domain.assets import AssetType, is_frame, media_type_for
 from app.domain.versioning import plan_supersede
 from app.domain.window import Window
+from app.schemas import JsonUploadIn, SupersededOut, UploadOut
 from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository
-from app.schemas import UploadOut, JsonUploadIn
 
 router = APIRouter(prefix="/admin/v1/satellites", tags=["admin"])
 
@@ -19,13 +20,13 @@ def _upload_response(
     plan, new_id: int, asset_type: AssetType, window: Window
 ) -> UploadOut:
     superseded = [
-        {"version_id": t.version_id, "new_valid_to": t.new_window.end}
+        SupersededOut(version_id=t.version_id, new_valid_to=t.new_window.end)
         for t in plan.truncations
     ]
     return UploadOut(
         created={
             "version_id": new_id,
-            "asset_type": asset_type,
+            "asset_type": asset_type.value,
             "valid_from": window.start,
             "valid_to": window.end,
         },
@@ -66,14 +67,16 @@ async def upload_version(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="JSON asset requires an application/json body",
             )
-        body = json.dumps(json_body.payload, sort_keys=True, separators=(",", ":"))
+        body = json.dumps(
+            json_body.payload, sort_keys=True, separators=(",", ":")
+        ).encode()
         ext = ".json"
         window = Window(json_body.valid_from, json_body.valid_to)
         allow_historical_overwrite = json_body.allow_historical_overwrite
 
     sha256 = hashlib.sha256(body).hexdigest()
     media_type = media_type_for(asset_type)
-    key = f"{satellite_id}/{asset_type}/{sha256}{ext}"
+    key = f"{satellite_id}/{asset_type.value}/{sha256}{ext}"
     blobs.put(key, io.BytesIO(body), len(body), media_type)
     timeline = repo.timeline(satellite_id, asset_type)
     plan = plan_supersede(
@@ -91,4 +94,7 @@ async def upload_version(
         sha256=sha256,
         created_by=operator,
     )
+    # an upload always inserts a new version (not a continuation), so apply_plan
+    # should always return a new_id; None would mean a truncation-only plan (continuation)
+    assert new_id is not None
     return _upload_response(plan, new_id, asset_type, window)
