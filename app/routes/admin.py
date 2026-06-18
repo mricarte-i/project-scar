@@ -16,9 +16,7 @@ from app.storage.repository import AssetRepository
 router = APIRouter(prefix="/admin/v1/satellites", tags=["admin"])
 
 
-def _upload_response(
-    plan, new_id: int, asset_type: AssetType, window: Window
-) -> UploadOut:
+def _upload_response(plan, new_id: int, asset_type: AssetType, window: Window) -> UploadOut:
     superseded = [
         SupersededOut(version_id=t.version_id, new_valid_to=t.new_window.end)
         for t in plan.truncations
@@ -67,9 +65,7 @@ async def upload_version(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="JSON asset requires an application/json body",
             )
-        body = json.dumps(
-            json_body.payload, sort_keys=True, separators=(",", ":")
-        ).encode()
+        body = json.dumps(json_body.payload, sort_keys=True, separators=(",", ":")).encode()
         ext = ".json"
         window = Window(json_body.valid_from, json_body.valid_to)
         allow_historical_overwrite = json_body.allow_historical_overwrite

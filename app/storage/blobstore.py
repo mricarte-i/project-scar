@@ -7,9 +7,7 @@ from app.config import Settings
 
 
 class BlobStore(Protocol):
-    def put(
-        self, key: str, data: BinaryIO, content_length: int, content_type: str
-    ) -> None: ...
+    def put(self, key: str, data: BinaryIO, content_length: int, content_type: str) -> None: ...
     def presign_get(self, key: str) -> str: ...
 
 
@@ -34,9 +32,7 @@ class S3BlobStore:
             **common,
         )
 
-    def put(
-        self, key: str, data: BinaryIO, content_length: int, content_type: str
-    ) -> None:
+    def put(self, key: str, data: BinaryIO, content_length: int, content_type: str) -> None:
         self._internal.put_object(
             Bucket=self._bucket,
             Key=key,

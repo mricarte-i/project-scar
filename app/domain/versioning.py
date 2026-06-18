@@ -92,15 +92,11 @@ def plan_supersede(
         for extra in remainders[1:]:
             # if there is a second remainder, it means the new window is strictly contained in the existing one,
             # so we need to insert an extra version for the right remainder with the same payload reference as the existing version
-            plan.inserts.append(
-                Insert(extra, version.payload_ref, lineage_version_id=version.id)
-            )
+            plan.inserts.append(Insert(extra, version.payload_ref, lineage_version_id=version.id))
 
     if plan.requires_override and not allow_historical_overwrite:
         affected = [d.version_id for d in plan.deletions] + [
-            ins.lineage_version_id
-            for ins in plan.inserts
-            if ins.lineage_version_id is not None
+            ins.lineage_version_id for ins in plan.inserts if ins.lineage_version_id is not None
         ]
         raise HistoricalEditError(
             f"Supersede plan requires override of existing versions, but allow_historical_overwrite is {allow_historical_overwrite}",

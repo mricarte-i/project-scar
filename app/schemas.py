@@ -15,7 +15,9 @@ def _require_aware(ts: datetime) -> datetime:
 class BlobPayload(BaseModel):
     kind: Literal["blob"] = "blob"
     url: str
-    media_type: str  # tells the client how to interpret the blob, "application/json" vs "application/x-npy"
+    media_type: (
+        str  # tells the client how to interpret the blob, "application/json" vs "application/x-npy"
+    )
     expires_at: datetime | None = None
 
 

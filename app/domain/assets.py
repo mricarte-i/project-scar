@@ -18,8 +18,4 @@ class MediaType(StrEnum):
 
 
 def media_type_for(asset_type: AssetType) -> MediaType:
-    return (
-        MediaType.FRAME_MEDIA_TYPE
-        if is_frame(asset_type)
-        else MediaType.JSON_MEDIA_TYPE
-    )
+    return MediaType.FRAME_MEDIA_TYPE if is_frame(asset_type) else MediaType.JSON_MEDIA_TYPE

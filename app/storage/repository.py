@@ -40,9 +40,7 @@ class AssetRepository(Protocol):
     def resolve_all_at(
         self, satellite_id: str, at: datetime
     ) -> dict[AssetType, ResolvedVersion | None]: ...
-    def timeline(
-        self, satellite_id: str, asset_type: AssetType
-    ) -> list[ExistingVersion]: ...
+    def timeline(self, satellite_id: str, asset_type: AssetType) -> list[ExistingVersion]: ...
     def apply_plan(
         self,
         plan: SupersedePlan,
@@ -127,9 +125,7 @@ class SqlAssetRepository(AssetRepository):
             for trunc in plan.truncations:
                 obj = self._s.get(AssetVersion, trunc.version_id)
                 if obj is None:
-                    raise RuntimeError(
-                        f"plan truncates missing version {trunc.version_id}"
-                    )
+                    raise RuntimeError(f"plan truncates missing version {trunc.version_id}")
                 obj.validity = window_to_range(trunc.new_window)
 
             for insert in plan.inserts:

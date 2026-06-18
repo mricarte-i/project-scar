@@ -13,9 +13,7 @@ from app.routes import admin, lookups
 from app.schemas import ErrorBody, ErrorOut
 
 
-def _error_response(
-    status_code: int, code: str, message: str, details: dict
-) -> JSONResponse:
+def _error_response(status_code: int, code: str, message: str, details: dict) -> JSONResponse:
     body = ErrorOut(error=ErrorBody(code=code, message=message, details=details))
     return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"))
 

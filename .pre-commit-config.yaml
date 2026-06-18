@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.17
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (app)
+        entry: .venv/bin/mypy app
+        args: [app]
+        language: system
+        types: [python]
+        pass_filenames: false # we want to run mypy on the whole app, not per-file
