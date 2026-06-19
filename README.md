@@ -8,10 +8,21 @@
 - [] tests
 - [] CI/CD
   - [x] linting
-  - [] testing
+  - [-] testing
   - [] build
 - [] ejemplos de request a la API como admin y a user
 - [] documentación de los endpoints con Swagger
+
+## Configuración del proyecto
+
+- Python 3.12
+  - usar un virtual environment, por ejemplo con `python -m venv .venv` y luego activar el entorno virtual con `source .venv/bin/activate` (Linux/Mac)
+- Instalar las dependencias con `pip install -r app/requirements.txt ruff mypy`
+- En VSCode, usar el plugin de Ruff para linting y formateo automático
+
+## Testing
+- Para correr los unit tests, usar `pytest tests/unit`
+- Para correr los integration tests, dado que se necesita una instancia de PostgreSQL, debes usar el script en `scripts/run_integration_tests.sh` que levanta un contenedor de PostgreSQL con Docker, corre las migraciones y luego ejecuta los tests.
 
 ## Entendiendo el problema
 

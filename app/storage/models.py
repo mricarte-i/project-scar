@@ -17,7 +17,7 @@ class Base(DeclarativeBase):
 
 
 class AssetVersion(Base):
-    __tablename__ = "asset_version"
+    __tablename__ = "asset_versions"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     satellite_id: Mapped[str] = mapped_column(Text, nullable=False)
