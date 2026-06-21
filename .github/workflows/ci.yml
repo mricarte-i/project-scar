@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: 3.12
-      - run: pip install -r app/requirements.txt ruff mypy
+      - run: pip install -r app/requirements.txt -r requirements-dev.txt
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy app
@@ -39,8 +39,11 @@ jobs:
       SCAR_DATABASE_URL: postgresql+psycopg://scar:scar@localhost:5432/scar
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Testing the app with the test database..."
-      # TODO: tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - run: pip install -r app/requirements.txt -r requirements-dev.txt
+      - run: pytest tests/
   
   build:
     needs: [lint]
@@ -49,21 +52,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker image
         run: docker build -f app/Dockerfile -t scar:${{ github.sha }} .
-      - name: Test the full stack with docker-compose
-        run: |
-          docker compose up -d
-          for i in $(seq 1 30); do
-            if curl -fs http://localhost:8000/healthz;
-            then
-              echo;
-              echo "App is healthy!";
-              exit 0;
-            fi
-            sleep 2;
-          done
-          echo "App did not become healthy in time";
-          docker compose logs;
-          exit 1;
+      - name: Bring up the full stack
+        run: docker compose up -d
+      - name: Smoke test (health + write-path upload -> resolve round-trip)
+        run: bash scripts/smoke-test.sh
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose logs
       - name: Tear down
         if: always()
         run: docker compose down -v

@@ -3,13 +3,13 @@
 > ### [tldraw board](https://www.tldraw.com/f/OxanQLjTHBoZodbA-pT9G?d=v325.-290.2496.1771.page)
 
 ## TODO:
-- [] instrucciones para correr localmente (docker-compose)
+- [x] instrucciones para correr localmente (docker-compose)
 - [x] instrucciones para correr los tests
 - [x] tests
-- [] CI/CD
+- [x] CI/CD
   - [x] linting
   - [x] testing
-  - [] build
+  - [x] build
 - [] ejemplos de request a la API como admin y a user
 - [x] documentación de los endpoints con Swagger
 
@@ -21,14 +21,101 @@
 - Instalar las dependencias con `pip install -r app/requirements.txt ruff mypy`
 - En VSCode, usar el plugin de Ruff para linting y formateo automático
 
+### Prequisitos
+- Python 3.12 (uv es recomendado para manejar dependencias y entornos virtuales)
+- Docker y Docker Compose para levantar la base de datos PostgreSQL y MinIO localmente.
+
+#### 1. Instalar uv
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+#### 2. Crear un entorno virtual e instalar dependencias
+```bash
+uv venv --python 3.12 .venv
+# Runtime + DEV deps
+uv pip install --python .venv -r app/requirements.txt -r requirements-dev.txt
+```
+
+#### 3. Activar el entorno virtual
+```bash
+source .venv/bin/activate
+```
+
+#### 4. Linting
+```bash
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
+.venv/bin/mypy app
+```
+
+To auto-apply the fixable lint + formatting issues:
+```bash
+.venv/bin/ruff check --fix .
+.venv/bin/ruff format .
+```
+
+### Editor
+En VSCode:
+
+```bash
+code --install-extension charliemash.ruff
+```
+En `.vscode/settings.json`, configurar el linter para usar Ruff:
+```json
+"[python]": {
+    "editor.defaultFormatter": "charliemash.ruff",
+    "editor.formatOnSave": true
+    "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": "explicit",
+        "source.organizeImports.ruff": "explicit"
+    }
+    // use the ruff from .venv so the editor matches
+    // what CI/our scripts run, instead of the
+    // version bundled with the extension.
+    "ruff.importStrategy": "fromEnvironment",
+},
+```
+
+### Pre-commit hook
+
+Corre el linter y formateo automáticamente antes de cada commit usando un pre-commit hook, bloqueandolo si hay errores. Para configurar esto, puedes usar la herramienta `pre-commit`.
+
+```bash
+uv tool install pre-commit  # installs pre-commit to ~/.local/bin
+pre-commit install          # wires .git/hooks/pre-commit 
+pre-commit run --all-files  # try it once
+```
+
+Ver `.pre-commit-config.yaml` para la configuración del hook, que actualmente corre Ruff para linting y formateo, pero no aplica rewrites automáticos.
+
+### Levantar la aplicación localmente con Docker Compose
+Postgres + MinIO + FastAPI app:
+
+```bash
+docker-compose up
+# API on http://localhost:8000 (GET /healthz)
+```
+
+### Testing
+
+#### Unit tests
+```bash
+pytest tests/unit
+```
+
+#### Integration tests
+```bash
+scripts/run_integration_tests.sh
+```
+
+
+El schema de la DB se carga con `init.sql` al iniciar el contenedor de PostgreSQL. Si se necesitan hacer cambios al schema, re-iniciar con `docker-compose down -v` para eliminar los volúmenes.
+
 ## Schema de la API REST
 Como el proyecto usa FastAPI, se genera automáticamente documentación de los endpoints con Swagger, que se puede acceder en `http://localhost:8000/docs` una vez que el servidor esté corriendo.
 
 Tambien es posible usar el script `scripts/generate_api_schema.sh` para generar un json schema de la API sin tener que levantar el servidor.
-
-## Testing
-- Para correr los **unit tests**, usar `pytest tests/unit`
-- Para correr los **integration tests**, dado que se necesita una instancia de PostgreSQL, debes usar el script en `scripts/run_integration_tests.sh` que levanta un contenedor de PostgreSQL con Docker, corre las migraciones y luego ejecuta los tests.
 
 ## Entendiendo el problema
 
