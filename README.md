@@ -10,19 +10,14 @@
   - [x] linting
   - [x] testing
   - [x] build
-- [] ejemplos de request a la API como admin y a user
+- [x] ejemplos de request a la API como admin y a user
 - [x] documentación de los endpoints con Swagger
 
 ## Configuración del proyecto
 
-- Python 3.12
-  - **usar un virtual environment**, por ejemplo con `python -m venv .venv` y luego activar el entorno virtual con `source .venv/bin/activate` (Linux/Mac)
-- Docker y Docker Compose para levantar la base de datos PostgreSQL y MinIO localmente
-- Instalar las dependencias con `pip install -r app/requirements.txt ruff mypy`
-- En VSCode, usar el plugin de Ruff para linting y formateo automático
-
 ### Prequisitos
-- Python 3.12 (uv es recomendado para manejar dependencias y entornos virtuales)
+- Python 3.12 (`uv` es recomendado para manejar dependencias y entornos virtuales)
+  - Otra opcion seria usar `python -m venv .venv` y luego activar el entorno virtual con `source .venv/bin/activate` (Linux/Mac), pero `uv` hace que sea un poco mas sencillo manejar las dependencias y el entorno virtual.
 - Docker y Docker Compose para levantar la base de datos PostgreSQL y MinIO localmente.
 
 #### 1. Instalar uv
@@ -58,6 +53,7 @@ To auto-apply the fixable lint + formatting issues:
 ### Editor
 En VSCode:
 
+#### 1. Instalar el plugin de Ruff:
 ```bash
 code --install-extension charliemash.ruff
 ```
@@ -76,6 +72,15 @@ En `.vscode/settings.json`, configurar el linter para usar Ruff:
     "ruff.importStrategy": "fromEnvironment",
 },
 ```
+
+#### 2. Instalar REST Client plugin para probar la API:
+```bash
+code --install-extension humao.rest-client
+```
+Ir al archivo `examples/scar.http` y hacer click en `Send Request` para probar los endpoints de la API.
+
+**AVISO**: uno de los requests hace uso de un archivo en `/samples/micro_darkframe_newsat53.npy`, que no está incluido en el repo. 
+Otra opcion podria ser modificar la linea `< ../samples/micro_darkframe_newsat53.npy` por `pretend-binary-frame-bytes` para que no falle el request, pero no se va a probar realmente el upload del asset.
 
 ### Pre-commit hook
 
@@ -96,6 +101,10 @@ Postgres + MinIO + FastAPI app:
 docker-compose up
 # API on http://localhost:8000 (GET /healthz)
 ```
+
+#### Notas:
+- Si no tenes `docker-compose` pero si `docker` instalado, podes usar `docker compose up` (sin el guion).
+- Si queres buildear la app de cero, podes usar `docker-compose build --no-cache` para asegurarte de que se reconstruya la imagen sin usar cache.
 
 ### Testing
 
@@ -121,10 +130,10 @@ Tambien es posible usar el script `scripts/generate_api_schema.sh` para generar 
 
 ### requerimientos funcionales
 
-- admin debe poder subir nuevos assets con un `valid_from` que atomicamente de fin al anterior asset que tuviese `valid_to` indefinido
-- admin debe poder retirar un asset -> a esto lo voy a llamar darle un `valid_to` definido, no borrarlo
-- se debe poder hacer una query que dado un satelite, tipo de asset y timestamp, devuelva la version del asset que era valido para ese momento -> point-in-time lookup
-- se debe poder hacer una query que dado un satelite y timestamp, devuelva todos los assets de calibracion activos para ese satelite (si no habia asset valido/activo, tiramos 404) -> bulk lookup
+- admin debe poder subir/**crear** nuevos assets con un `valid_from` que atomicamente de fin al anterior asset que tuviese `valid_to` indefinido
+- admin debe poder **retirar** un asset -> a esto lo voy a llamar darle un `valid_to` definido, no borrarlo
+- se debe poder hacer una query que dado un satelite, tipo de asset y timestamp, devuelva la version del asset que era valido para ese momento -> **point-in-time lookup**
+- se debe poder hacer una query que dado un satelite y timestamp, devuelva todos los assets de calibracion activos para ese satelite (si no habia asset valido/activo, tiramos 404) -> **bulk lookup**
 - la validez temporal de los assets para un satelite nunca hacen overlap, pero pueden haber gaps -> temporal versioning
 
 ### requerimientos no funcionales
@@ -156,11 +165,16 @@ vamos a almacenar la metadata sobre los assets y sus validity windows en una DB.
   |   |-- /routes  ---> endpoints de la API REST
   |   |-- /domain ---> typing, temporal versioning, supersede rules, etc.
   |   |-- /storage  ---> interface para AssetMetadata y BlobStorage
-  |-- /tests
+  |-- /tests  ---> tests unitarios e integracion
+  |-- /scripts  ---> scripts para correr tests de integracion, generar API schema, etc.
   |-- docker-compose.yml
+  |-- init.sql  ---> schema de la DB
+  |-- docs/  ---> documentación de la API con Swagger (generada automáticamente por FastAPI)
+  |-- examples/  ---> ejemplos de requests a la API para admin y user
+  |-- .pre-commit-config.yaml  ---> configuración del pre-commit hook para linting y formateo
   |-- /.github
       |-- /workflows
-          |-- ci.yml
+          |-- ci.yml  ---> CI/CD pipeline
 ```
 
 Para manejar la logica del supersede, se puede definir que un asset es valido en una ventana de tiempo, con un `valid_from` y un `valid_to`, donde `valid_to` puede ser indefinido para indicar que es el asset "activo actualmente". cuando se quiera insertar un nuevo asset, podemos validar entre esas ventanas de tiempo para ver si hay overlaps, si los hay, ver como se puede splittear/truncar los assets anteriores para acomodar el nuevo asset, y en base a eso ver que operaciones se llevarian a cabo para aplicar los cambios en la DB (estos van metidos en una transaction para mantener atomicidad).

@@ -1,0 +1,147 @@
+##########################################
+# SCAR - example requests for the VS Code "REST Client" extension
+# Open this file in VS Code and click "Send Request" above each request to execute it
+# 
+# Pre-requisites:
+#   1. Install the "REST Client" extension in VS Code
+#   2. Start the SCAR server (e.g. by running `docker compose up` in the SCAR project directory)
+#   3. The admin key below (`dev-key`) matches the one in docker-compose.yml
+#       SCAR_ADMIN_API_KEYS=dev-key:dev-operator. Reads need no auth.
+##########################################
+
+@baseUrl = http://localhost:8000
+@apiKey = dev-key
+@sat = SAT-427
+
+### liveness check
+GET {{baseUrl}}/healthz
+
+### bulk read
+GET {{baseUrl}}/v1/satellites/{{sat}}/assets?at=2025-06-01T00:00:00Z
+
+### upload a JSON calibration asset (multipart: form-fields + JSON file part)
+# @name uploadGains
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/vicarious_cal_gains/versions
+X-API-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2025-01-01T00:00:00Z
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="vicarious_cal_gains.json"
+Content-Type: application/json
+
+< ../samples/vicarious_cal_gains.json
+------scarboundary--
+
+
+### Resolve that asset at a point in time
+# Returns metadata + presigned MinIO URL for the payload bytes.
+GET {{baseUrl}}/v1/satellites/{{sat}}/assets/vicarious_cal_gains?at=2025-06-01T00:00:00Z
+
+
+### Read back the version id captured from the upload response above
+GET {{baseUrl}}/v1/satellites/{{sat}}/assets/vicarious_cal_gains
+# created version_id was: {{uploadGains.response.body.created.version_id}}
+
+
+### Upload an open-ended JSON asset, then supersede it (truncates first)
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/body_to_payload/versions
+X-API-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2020-01-01T00:00:00Z
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="made-up.json"
+Content-Type: application/json
+
+{ "v": 1 }
+------scarboundary--
+
+### Supersede: a newer version from 2025 closes the 2020 version
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/body_to_payload/versions
+X-API-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2025-01-01T00:00:00Z
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="fake.json"
+Content-Type: application/json
+
+{ "v": 2}
+------scarboundary--
+
+
+### Upload a frame (binary)
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/darkframe/versions
+X-API-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2025-01-01T00:00:00Z
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="micro_darkframe_newsat53.npy"
+Content-Type: application/octet-stream
+
+< ../samples/micro_darkframe_newsat53.npy
+------scarboundary--
+
+
+### Resolve the frame at a point in time
+GET {{baseUrl}}/v1/satellites/{{sat}}/assets/darkframe?at=2025-06-01T00:00:00Z
+
+### Retire darkframe at 2030
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/darkframe/versions/retire
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{ "effective_from": "2030-01-01T00:00:00Z" }
+
+### After retirement, there is a gap -> no_asset_valid 422
+GET {{baseUrl}}/v1/satellites/{{sat}}/assets/darkframe?at=2031-01-01T00:00:00Z
+
+
+### 
+# Error cases
+###
+
+### Missing auth -> 401
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/body_to_payload/versions
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2025-01-01T00:00:00Z
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="fake.json"
+Content-Type: application/json
+
+{ "v": 4.27 }
+------scarboundary--
+
+### Timestamp w/o timezone -> 422 validation_error
+POST {{baseUrl}}/admin/v1/satellites/{{sat}}/assets/body_to_payload/versions
+X-API-Key: {{apiKey}}
+Content-Type: multipart/form-data; boundary=----scarboundary
+
+------scarboundary
+Content-Disposition: form-data; name="valid_from"
+
+2025-01-01T00:00:00
+------scarboundary
+Content-Disposition: form-data; name="file"; filename="fake.json"
+Content-Type: application/json
+
+{ "v": 4.27 }
+------scarboundary--

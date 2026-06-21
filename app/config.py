@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # here be defaults
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="SCAR_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="SCAR_", env_file=".env", frozen=True)
     # `postgres+psycopg` -> makes sqlalchemy use the psycopg driver
     # `scar:scar` is the `username:password` for postgres
     # `@db:5432/scar` is the `host:port/database` for postgres
