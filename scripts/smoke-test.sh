@@ -81,7 +81,7 @@ curl -fsS -X POST "$json_url" \
     || fail "Failed to upload JSON asset (write path broken?)"
 
 echo "GET resolve ..."
-got="$(curl -fsS "$BASE_URL/v1/satellites/$SAT/assets/vicarious_cal_gains/resolve?at=2025-01-02T00:00:00Z")" \
+got="$(curl -fsS -L "$BASE_URL/v1/satellites/$SAT/assets/vicarious_cal_gains?at=2025-01-02T00:00:00Z")" \
     || fail "Failed to resolve JSON asset (read path broken?)"
 # the resolved version must carry a presigned blob URL (real MinIO round-trip)
 echo "$got" | grep -q '"url"' || fail "resolve response missing payload url: $got"

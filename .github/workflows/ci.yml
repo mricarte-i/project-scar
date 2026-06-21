@@ -46,7 +46,7 @@ jobs:
       - run: pytest tests/
   
   build:
-    needs: [lint]
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
