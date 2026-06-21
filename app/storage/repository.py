@@ -96,6 +96,10 @@ class SqlAssetRepository(AssetRepository):
             )
             .order_by(text("lower(validity)"))
         )
+        """
+        SQLAlchemy's execute() starts a transaction that stays open until the session is closed or committed. 
+        Since we use timeline() for apply_plan(), we should keep this in mind.
+        """
         return [
             ExistingVersion(
                 id=row.id,
@@ -118,7 +122,13 @@ class SqlAssetRepository(AssetRepository):
         sha256=None,
     ) -> int | None:
         new_id: int | None = None
-        with self._s.begin():  # one TRANSACTION to rule them all
+        """
+        Before apply_plan can be called, timeline() must've been called, which means we're already in a transaction. 
+        No need to start a new one, just execute the necessary statements and commit at the end of the outer transaction.
+        
+        """
+
+        try:
             for deletion in plan.deletions:
                 obj = self._s.get(AssetVersion, deletion.version_id)
                 if obj:
@@ -162,6 +172,10 @@ class SqlAssetRepository(AssetRepository):
                 self._s.flush()  # to get the id populated
                 if insert.lineage_version_id is None:
                     new_id = row.id
+            self._s.commit()
+        except Exception:
+            self._s.rollback()
+            raise
         return new_id
 
     @staticmethod

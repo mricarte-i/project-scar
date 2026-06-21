@@ -1,15 +1,17 @@
 import hashlib
 import io
 import json
-from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
+from starlette.datastructures import UploadFile
 
 from app.deps import get_asset_repository, get_blob_store, require_admin
 from app.domain.assets import AssetType, is_frame, media_type_for
 from app.domain.versioning import plan_retire, plan_supersede
 from app.domain.window import Window
-from app.schemas import JsonUploadIn, RetireIn, RetireOut, SupersededOut, UploadOut
+from app.schemas import FrameUploadIn, JsonUploadIn, RetireIn, RetireOut, SupersededOut, UploadOut
 from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository
 
@@ -40,31 +42,47 @@ def _upload_response(plan, new_id: int, asset_type: AssetType, window: Window) -
 async def upload_version(
     satellite_id: str,
     asset_type: AssetType,
-    valid_from: datetime | None = Form(default=None),
-    valid_to: datetime | None = Form(default=None),
-    allow_historical_overwrite: bool = Form(default=False),
-    file: UploadFile | None = File(default=None),
-    json_body: JsonUploadIn | None = None,
+    request: Request,
     operator: str = Depends(require_admin),
     repo: AssetRepository = Depends(get_asset_repository),
     blobs: BlobStore = Depends(get_blob_store),
 ):
-    # TODO: file extensions assume we only work with json and npy, just keep in mind
+    """
+    Two transports share this route, keyed on asset_type: frames arrive as
+    multipart file uploads (the .npy file streams in), JSON assets as an application/json
+    body.
+    FastAPI can't declare both Form and a JSON body on one route, so we
+    read the raw request and parse it ourselves, if anything goes wrong we raise a RequestValidationError
+    as a 422 error, just like a declared body would.
+    """
+
     if is_frame(asset_type):
-        if file is None or valid_from is None:
+        form = await request.form()
+        upload = form.get("file")
+        if not isinstance(upload, UploadFile):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="file and valid_from are required for frame assets",
+                detail="frame upload requires a file ",
             )
-        body = await file.read()
+        try:
+            metadata = FrameUploadIn.model_validate(
+                {
+                    "valid_from": form.get("valid_from"),
+                    "valid_to": form.get("valid_to"),
+                    "allow_historical_overwrite": form.get("allow_historical_overwrite", False),
+                }
+            )
+        except ValidationError as e:
+            raise RequestValidationError(errors=e.errors()) from e
+        body = await upload.read()
         ext = ".npy"
-        window = Window(valid_from, valid_to)
+        window = Window(metadata.valid_from, metadata.valid_to)
+        allow_historical_overwrite = metadata.allow_historical_overwrite
     else:
-        if json_body is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="JSON asset requires an application/json body",
-            )
+        try:
+            json_body = JsonUploadIn.model_validate_json(await request.body())
+        except ValidationError as e:
+            raise RequestValidationError(errors=e.errors()) from e
         body = json.dumps(json_body.payload, sort_keys=True, separators=(",", ":")).encode()
         ext = ".json"
         window = Window(json_body.valid_from, json_body.valid_to)
