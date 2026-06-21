@@ -37,29 +37,6 @@ class BulkOut(BaseModel):
     assets: dict[AssetType, VersionOut | None]
 
 
-class _UploadWindowIn(BaseModel):
-    valid_from: datetime
-    valid_to: datetime | None = None
-    allow_historical_overwrite: bool = False
-
-    _v_from = field_validator("valid_from")(_require_aware)
-
-    @field_validator("valid_to")
-    @classmethod
-    def _v_to(cls, v: datetime | None) -> datetime | None:
-        return _require_aware(v) if v is not None else None
-
-
-class JsonUploadIn(_UploadWindowIn):
-    payload: dict[str, Any]
-
-
-class FrameUploadIn(_UploadWindowIn):
-    """
-    Frame metadata; the .npy file rides alongside as a multipart file upload, see routes/admin.py
-    """
-
-
 class SupersededOut(BaseModel):
     version_id: int
     new_valid_to: datetime | None

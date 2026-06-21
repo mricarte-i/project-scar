@@ -1,0 +1,597 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/satellites/{satellite_id}/assets/{asset_type}/": {
+      "get": {
+        "tags": [
+          "lookups"
+        ],
+        "summary": "Point In Time",
+        "operationId": "point_in_time_v1_satellites__satellite_id__assets__asset_type___get",
+        "parameters": [
+          {
+            "name": "satellite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Satellite Id"
+            }
+          },
+          {
+            "name": "asset_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AssetType"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/satellites/{satellite_id}/assets/": {
+      "get": {
+        "tags": [
+          "lookups"
+        ],
+        "summary": "Bulk",
+        "operationId": "bulk_v1_satellites__satellite_id__assets__get",
+        "parameters": [
+          {
+            "name": "satellite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Satellite Id"
+            }
+          },
+          {
+            "name": "at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "At"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/v1/satellites/{satellite_id}/assets/{asset_type}/versions": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Upload Version",
+        "description": "A multipart upload carrying payload as a file, plus the validity window\nas form fields. Frames (.npy) are stored as opaque bytes; JSON assets are\nparsed, re-serialized with sorted keys and no whitespace, so\nlogically equivalent JSON should yield the same hash.",
+        "operationId": "upload_version_admin_v1_satellites__satellite_id__assets__asset_type__versions_post",
+        "parameters": [
+          {
+            "name": "satellite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Satellite Id"
+            }
+          },
+          {
+            "name": "asset_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AssetType"
+            }
+          },
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_version_admin_v1_satellites__satellite_id__assets__asset_type__versions_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/v1/satellites/{satellite_id}/assets/{asset_type}/versions/retire": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Retire Version",
+        "operationId": "retire_version_admin_v1_satellites__satellite_id__assets__asset_type__versions_retire_post",
+        "parameters": [
+          {
+            "name": "satellite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Satellite Id"
+            }
+          },
+          {
+            "name": "asset_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AssetType"
+            }
+          },
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetireIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetireOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AssetType": {
+        "type": "string",
+        "enum": [
+          "darkframe",
+          "grayframe",
+          "vicarious_cal_gains",
+          "body_to_payload"
+        ],
+        "title": "AssetType"
+      },
+      "BlobPayload": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "blob",
+            "title": "Kind",
+            "default": "blob"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "media_type": {
+            "type": "string",
+            "title": "Media Type"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "url",
+          "media_type"
+        ],
+        "title": "BlobPayload"
+      },
+      "Body_upload_version_admin_v1_satellites__satellite_id__assets__asset_type__versions_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "allow_historical_overwrite": {
+            "type": "boolean",
+            "title": "Allow Historical Overwrite",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "file",
+          "valid_from"
+        ],
+        "title": "Body_upload_version_admin_v1_satellites__satellite_id__assets__asset_type__versions_post"
+      },
+      "BulkOut": {
+        "properties": {
+          "satellite_id": {
+            "type": "string",
+            "title": "Satellite Id"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "assets": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/VersionOut"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/AssetType"
+            },
+            "type": "object",
+            "title": "Assets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "satellite_id",
+          "at",
+          "assets"
+        ],
+        "title": "BulkOut"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "RetireIn": {
+        "properties": {
+          "effective_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Effective From"
+          }
+        },
+        "type": "object",
+        "required": [
+          "effective_from"
+        ],
+        "title": "RetireIn"
+      },
+      "RetireOut": {
+        "properties": {
+          "retired": {
+            "$ref": "#/components/schemas/SupersededOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "retired"
+        ],
+        "title": "RetireOut"
+      },
+      "SupersededOut": {
+        "properties": {
+          "version_id": {
+            "type": "integer",
+            "title": "Version Id"
+          },
+          "new_valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Valid To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version_id",
+          "new_valid_to"
+        ],
+        "title": "SupersededOut"
+      },
+      "UploadOut": {
+        "properties": {
+          "created": {
+            "type": "object",
+            "title": "Created"
+          },
+          "superseded": {
+            "items": {
+              "$ref": "#/components/schemas/SupersededOut"
+            },
+            "type": "array",
+            "title": "Superseded",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "created"
+        ],
+        "title": "UploadOut"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VersionOut": {
+        "properties": {
+          "satellite_id": {
+            "type": "string",
+            "title": "Satellite Id"
+          },
+          "asset_type": {
+            "$ref": "#/components/schemas/AssetType"
+          },
+          "version_id": {
+            "type": "integer",
+            "title": "Version Id"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/BlobPayload"
+          }
+        },
+        "type": "object",
+        "required": [
+          "satellite_id",
+          "asset_type",
+          "version_id",
+          "valid_from",
+          "valid_to",
+          "sha256",
+          "payload"
+        ],
+        "title": "VersionOut"
+      }
+    }
+  }
+}

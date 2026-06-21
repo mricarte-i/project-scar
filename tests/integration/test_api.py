@@ -6,39 +6,32 @@ AUTH = {"X-API-Key": ADMIN_KEY}
 SAT_ID = "sat-123"
 
 
+def _json_upload(payload: bytes = b'{"k": 1}'):
+    return {
+        "data": {
+            "valid_from": "2025-01-01T00:00:00Z",
+        },
+        "files": {
+            "file": ("payload.json", payload, "application/json"),
+        },
+    }
+
+
 # auth for admin endpoints
 
 
 def test_upload_without_api_key_fails(client):
-    asset_type = "body_to_payload"
-    payload = {
-        "quaternion": [
-            0.00808936460768732,
-            0.00483359305280839,
-            0.004488464035575687,
-            0.9999455246407403,
-        ]
-    }
     response = client.post(
-        f"/admin/v1/satellites/{SAT_ID}/assets/{asset_type}/versions",
-        json={"valid_from": "2025-01-01T00:00:00Z", "payload": payload},
+        f"/admin/v1/satellites/{SAT_ID}/assets/vicarious_cal_gains/versions",
+        **_json_upload(),
     )
     assert response.status_code == 401
 
 
 def test_upload_with_bad_api_key_fails(client):
-    asset_type = "body_to_payload"
-    payload = {
-        "quaternion": [
-            0.00808936460768732,
-            0.00483359305280839,
-            0.004488464035575687,
-            0.9999455246407403,
-        ]
-    }
     response = client.post(
-        f"/admin/v1/satellites/{SAT_ID}/assets/{asset_type}/versions",
-        json={"valid_from": "2025-01-01T00:00:00Z", "payload": payload},
+        f"/admin/v1/satellites/{SAT_ID}/assets/vicarious_cal_gains/versions",
+        **_json_upload(),
         headers={"X-API-Key": "bad-key"},
     )
     assert response.status_code == 401
@@ -75,7 +68,12 @@ def test_bulk_returns_all_types_null_when_empty(client):
 
 
 def test_invalid_timestamp_fails_lookup(client):
-    response = client.get(f"/v1/satellites/{SAT_ID}/assets/darkframe?at=invalid-timestamp")
+    response = client.post(
+        f"/admin/v1/satellites/{SAT_ID}/assets/vicarious_cal_gains/versions",
+        data={"valid_from": "2025-01-01T00:00:00"},  # no tz offset
+        files={"file": ("payload.json", b'{"k": 1}', "application/json")},
+        headers=AUTH,
+    )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_error"
 
@@ -86,7 +84,8 @@ def test_invalid_timestamp_fails_lookup(client):
 def test_upload_then_resolve(client, fake_blobstore):
     upload_response = client.post(
         f"/admin/v1/satellites/{SAT_ID}/assets/vicarious_cal_gains/versions",
-        json={"valid_from": "2025-01-01T00:00:00Z", "payload": {"gain": 4.27}},
+        data={"valid_from": "2025-01-01T00:00:00Z"},
+        files={"file": ("payload.json", b'{"gain": 4.27}', "application/json")},
         headers=AUTH,
     )
     assert upload_response.status_code == 201, upload_response.text
@@ -109,15 +108,14 @@ def test_supersede_then_retire_flow(client):
     base = f"/admin/v1/satellites/{SAT_ID}/assets/body_to_payload/versions"
     client.post(
         base,
-        json={"valid_from": "2020-01-01T00:00:00Z", "payload": {"v": 1}},
+        data={"valid_from": "2020-01-01T00:00:00Z"},
+        files={"file": ("payload.json", b'{"v": 1}', "application/json")},
         headers=AUTH,
     )
     supersede_response = client.post(
         base,
-        json={
-            "valid_from": "2025-01-01T00:00:00Z",
-            "payload": {"v": 2},
-        },
+        data={"valid_from": "2025-01-01T00:00:00Z"},
+        files={"file": ("payload.json", b'{"v": 2}', "application/json")},
         headers=AUTH,
     )
     assert supersede_response.status_code == 201

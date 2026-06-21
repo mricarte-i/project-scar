@@ -4,25 +4,31 @@
 
 ## TODO:
 - [] instrucciones para correr localmente (docker-compose)
-- [] instrucciones para correr los tests
-- [] tests
+- [x] instrucciones para correr los tests
+- [x] tests
 - [] CI/CD
   - [x] linting
-  - [-] testing
+  - [x] testing
   - [] build
 - [] ejemplos de request a la API como admin y a user
-- [] documentación de los endpoints con Swagger
+- [x] documentación de los endpoints con Swagger
 
 ## Configuración del proyecto
 
 - Python 3.12
-  - usar un virtual environment, por ejemplo con `python -m venv .venv` y luego activar el entorno virtual con `source .venv/bin/activate` (Linux/Mac)
+  - **usar un virtual environment**, por ejemplo con `python -m venv .venv` y luego activar el entorno virtual con `source .venv/bin/activate` (Linux/Mac)
+- Docker y Docker Compose para levantar la base de datos PostgreSQL y MinIO localmente
 - Instalar las dependencias con `pip install -r app/requirements.txt ruff mypy`
 - En VSCode, usar el plugin de Ruff para linting y formateo automático
 
+## Schema de la API REST
+Como el proyecto usa FastAPI, se genera automáticamente documentación de los endpoints con Swagger, que se puede acceder en `http://localhost:8000/docs` una vez que el servidor esté corriendo.
+
+Tambien es posible usar el script `scripts/generate_api_schema.sh` para generar un json schema de la API sin tener que levantar el servidor.
+
 ## Testing
-- Para correr los unit tests, usar `pytest tests/unit`
-- Para correr los integration tests, dado que se necesita una instancia de PostgreSQL, debes usar el script en `scripts/run_integration_tests.sh` que levanta un contenedor de PostgreSQL con Docker, corre las migraciones y luego ejecuta los tests.
+- Para correr los **unit tests**, usar `pytest tests/unit`
+- Para correr los **integration tests**, dado que se necesita una instancia de PostgreSQL, debes usar el script en `scripts/run_integration_tests.sh` que levanta un contenedor de PostgreSQL con Docker, corre las migraciones y luego ejecuta los tests.
 
 ## Entendiendo el problema
 

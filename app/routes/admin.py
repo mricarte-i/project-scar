@@ -2,16 +2,14 @@ import hashlib
 import io
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.exceptions import RequestValidationError
-from pydantic import ValidationError
-from starlette.datastructures import UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import AwareDatetime
 
 from app.deps import get_asset_repository, get_blob_store, require_admin
 from app.domain.assets import AssetType, is_frame, media_type_for
 from app.domain.versioning import plan_retire, plan_supersede
 from app.domain.window import Window
-from app.schemas import FrameUploadIn, JsonUploadIn, RetireIn, RetireOut, SupersededOut, UploadOut
+from app.schemas import RetireIn, RetireOut, SupersededOut, UploadOut
 from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository
 
@@ -42,52 +40,41 @@ def _upload_response(plan, new_id: int, asset_type: AssetType, window: Window) -
 async def upload_version(
     satellite_id: str,
     asset_type: AssetType,
-    request: Request,
+    file: UploadFile = File(...),
+    valid_from: AwareDatetime = Form(...),
+    valid_to: AwareDatetime | None = Form(default=None),
+    allow_historical_overwrite: bool = Form(default=False),
     operator: str = Depends(require_admin),
     repo: AssetRepository = Depends(get_asset_repository),
     blobs: BlobStore = Depends(get_blob_store),
 ):
     """
-    Two transports share this route, keyed on asset_type: frames arrive as
-    multipart file uploads (the .npy file streams in), JSON assets as an application/json
-    body.
-    FastAPI can't declare both Form and a JSON body on one route, so we
-    read the raw request and parse it ourselves, if anything goes wrong we raise a RequestValidationError
-    as a 422 error, just like a declared body would.
+    A multipart upload carrying payload as a file, plus the validity window
+    as form fields. Frames (.npy) are stored as opaque bytes; JSON assets are
+    parsed, re-serialized with sorted keys and no whitespace, so
+    logically equivalent JSON should yield the same hash.
     """
-
+    raw = await file.read()
     if is_frame(asset_type):
-        form = await request.form()
-        upload = form.get("file")
-        if not isinstance(upload, UploadFile):
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="frame upload requires a file ",
-            )
-        try:
-            metadata = FrameUploadIn.model_validate(
-                {
-                    "valid_from": form.get("valid_from"),
-                    "valid_to": form.get("valid_to"),
-                    "allow_historical_overwrite": form.get("allow_historical_overwrite", False),
-                }
-            )
-        except ValidationError as e:
-            raise RequestValidationError(errors=e.errors()) from e
-        body = await upload.read()
+        body = raw
         ext = ".npy"
-        window = Window(metadata.valid_from, metadata.valid_to)
-        allow_historical_overwrite = metadata.allow_historical_overwrite
     else:
         try:
-            json_body = JsonUploadIn.model_validate_json(await request.body())
-        except ValidationError as e:
-            raise RequestValidationError(errors=e.errors()) from e
-        body = json.dumps(json_body.payload, sort_keys=True, separators=(",", ":")).encode()
+            payload = json.loads(raw)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "JSON asset payload must be a valid JSON",
+            ) from e
+        if not isinstance(payload, dict):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "JSON asset payload must be a JSON object",
+            )
+        body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
         ext = ".json"
-        window = Window(json_body.valid_from, json_body.valid_to)
-        allow_historical_overwrite = json_body.allow_historical_overwrite
 
+    window = Window(valid_from, valid_to)
     sha256 = hashlib.sha256(body).hexdigest()
     media_type = media_type_for(asset_type)
     key = f"{satellite_id}/{asset_type.value}/{sha256}{ext}"
