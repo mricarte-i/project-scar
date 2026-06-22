@@ -169,6 +169,10 @@ En un deploy real, se deberia tener un sistema de autenticacion mas robusto, asu
 
 Se tiene un logger configurado para registrar eventos de admin, en el upload y retiro de assets, con el objetivo de tener trazabilidad de las operaciones realizadas por los admins. El nivel de log se puede configurar a través de la variable `log_level` en la configuración.
 
+Se expone un endpoint `/metrics` con Prometheus FastAPI Instrumentator para que un servidor de Prometheus pueda scrapear métricas de request counts, latencia, etc. Una vez que este corriendo el compose, se pude ir a `http://localhost:9090`, ir a **Status**> **Targets**, ahi deberia estar `scar` como **UP** y se deberian poder ver una serie de queries como `http_requests_total` or `rate(http_request_duration_seconds_count[1m])`. 
+
+**nota**: esta planteado para uso local, en un deploy real con k8s deberia haber un servicio de discovery para conseguir los targets dinamicamente.
+
 ```
 /scar
   |-- /app

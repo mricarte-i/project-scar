@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 from typing import Any
 
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -24,6 +27,11 @@ def create_app() -> FastAPI:
     app = FastAPI()
     app.include_router(lookups.router)
     app.include_router(admin.router)
+    """
+    Expose /metrics (request counts, latency histograms, etc)
+    for a prometheus server to scrape.
+    """
+    Instrumentator().instrument(app).expose(app)
 
     @app.exception_handler(DomainError)
     async def _domain_error_handler(request, exc: DomainError):

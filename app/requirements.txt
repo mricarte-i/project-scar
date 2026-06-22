@@ -6,3 +6,4 @@ sqlalchemy==2.0.36
 psycopg[binary]==3.2.3
 boto3==1.35.90
 python-multipart==0.0.20
+prometheus-fastapi-instrumentator==7.1.0 # /metrics endpoint (pulls prometheus-client); 8.x needs starlette>=1.0
