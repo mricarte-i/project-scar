@@ -159,6 +159,16 @@ Para simplificar, la idea es tener un modulo para la API REST con FastAPI (pydan
 
 vamos a almacenar la metadata sobre los assets y sus validity windows en una DB. aprovechando que PostgreSQL con GiST tiene soporte para estos checkeos de tsrange y reglas para evitar overlaps, usamos eso. Luego, los assets tendrian que ir en un blob store, si hicieramos un deploy verdadero diria usar S3, pero para probar rapido voy con MinIO, que es compatible con S3.
 
+#### autenticacion
+
+Para simplificar, la API usa una simple X-API-Key authentication, donde el admin debe incluir un header `X-API-Key` con un valor pre-configurado para poder acceder a los endpoints de creación, actualización y retiro de assets. Los endpoints de consulta (lookups) son públicos y no requieren autenticación. 
+
+En un deploy real, se deberia tener un sistema de autenticacion mas robusto, asumo que se usaria un API Gateway en vez de tener un sistema de autenticacion implementado en la propia API.
+
+#### observabilidad
+
+Se tiene un logger configurado para registrar eventos de admin, en el upload y retiro de assets, con el objetivo de tener trazabilidad de las operaciones realizadas por los admins. El nivel de log se puede configurar a través de la variable `log_level` en la configuración.
+
 ```
 /scar
   |-- /app

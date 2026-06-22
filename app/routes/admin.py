@@ -1,6 +1,7 @@
 import hashlib
 import io
 import json
+import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import AwareDatetime
@@ -14,6 +15,7 @@ from app.storage.blobstore import BlobStore
 from app.storage.repository import AssetRepository
 
 router = APIRouter(prefix="/admin/v1/satellites", tags=["admin"])
+logger = logging.getLogger("scar.admin")
 
 
 def _upload_response(plan, new_id: int, asset_type: AssetType, window: Window) -> UploadOut:
@@ -98,6 +100,20 @@ async def upload_version(
     # an upload always inserts a new version (not a continuation), so apply_plan
     # should always return a new_id; None would mean a truncation-only plan (continuation)
     assert new_id is not None
+    logger.info(
+        "asset version created",
+        extra={
+            "event": "asset.upload",
+            "satellite_id": satellite_id,
+            "asset_type": asset_type.value,
+            "version_id": new_id,
+            "valid_from": window.start.isoformat(),
+            "valid_to": window.end.isoformat() if window.end else None,
+            "operator": operator,
+            "superseded_ids": [t.version_id for t in plan.truncations],
+            "sha256": sha256,
+        },
+    )
     return _upload_response(plan, new_id, asset_type, window)
 
 
@@ -123,4 +139,15 @@ def retire_version(
         created_by=operator,
     )
     t = plan.truncations[0]
+    logger.info(
+        "asset version retired",
+        extra={
+            "event": "asset.retire",
+            "satellite_id": satellite_id,
+            "asset_type": asset_type.value,
+            "retired_version_id": t.version_id,
+            "new_valid_to": t.new_window.end,
+            "operator": operator,
+        },
+    )
     return RetireOut(retired=SupersededOut(version_id=t.version_id, new_valid_to=t.new_window.end))
