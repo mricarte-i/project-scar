@@ -67,6 +67,16 @@ services:
       minio-init:
         condition: service_completed_successfully
 
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+    
+
 volumes:
   pgdata:
   miniodata:

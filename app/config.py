@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
     # comma separated "key:operator_name" pairs
     admin_api_keys: str = "dev-key:dev-operator"
+    # observability
+    log_level: str = "INFO"
 
     def admin_key_map(self) -> dict[str, str]:
         out: dict[str, str] = {}

@@ -1,0 +1,16 @@
+# Prometheus scrape config for the local stack
+# Prometheus pulls metrics from each target's /metrics endpoint on an interval
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # scrape the app's metrics
+  - job_name: scar
+    static_configs:
+      - targets: ['app:8000']
+  # scrape prometheus's own metrics for self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
